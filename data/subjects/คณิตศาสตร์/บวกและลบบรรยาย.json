@@ -1,0 +1,166 @@
+{
+    "topicTitle": "แบบทดสอบวิชาคณิตศาสตร์ ป.1 (การบวกและลบ)",
+    "learningContent": "แบบทดสอบนี้จะช่วยทบทวนความรู้เรื่องการบวกและการลบเลขสามหลักกับเลขสองหลักในรูปแบบโจทย์ปัญหา โปรดอ่านโจทย์อย่างตั้งใจและเลือกคำตอบที่ถูกต้อง",
+    "questions": [
+      {
+        "questionType": "multiple-choice",
+        "questionText": "แม่มีส้ม 150 ผล ซื้อมาเพิ่มอีก 35 ผล ตอนนี้แม่มีส้มทั้งหมดกี่ผล?",
+        "options": [
+          "185",
+          "155",
+          "125",
+          "190"
+        ],
+        "correctAnswer": "185"
+      },
+      {
+        "questionType": "numerical-input",
+        "questionText": "ในสวนมีดอกไม้สีแดง 215 ดอก และดอกไม้สีเหลือง 40 ดอก รวมมีดอกไม้ทั้งหมดกี่ดอก?",
+        "correctAnswer": 255
+      },
+      {
+        "questionType": "multiple-choice",
+        "questionText": "ต้นไม้สูง 325 เซนติเมตร ถ้าตัดยอดออก 50 เซนติเมตร ต้นไม้จะสูงกี่เซนติเมตร?",
+        "options": [
+          "275",
+          "375",
+          "250",
+          "285"
+        ],
+        "correctAnswer": "275"
+      },
+      {
+        "questionType": "numerical-input",
+        "questionText": "มีลูกโป่งสีฟ้า 430 ลูก และลูกโป่งสีเขียว 25 ลูก รวมมีลูกโป่งกี่ลูก?",
+        "correctAnswer": 455
+      },
+      {
+        "questionType": "multiple-choice",
+        "questionText": "ปู่นับดาวบนฟ้าได้ 189 ดวง ถ้ามีเมฆบังไป 15 ดวง จะเห็นดาวเหลือกี่ดวง?",
+        "options": [
+          "174",
+          "164",
+          "170",
+          "184"
+        ],
+        "correctAnswer": "174"
+      },
+      {
+        "questionType": "numerical-input",
+        "questionText": "มีหนังสืออยู่บนชั้น 500 เล่ม วางเพิ่มอีก 99 เล่ม รวมมีหนังสือกี่เล่ม?",
+        "correctAnswer": 599
+      },
+      {
+        "questionType": "multiple-choice",
+        "questionText": "ออมมีดินสอ 267 แท่ง ให้เพื่อนไป 30 แท่ง ออมจะเหลือดินสอกี่แท่ง?",
+        "options": [
+          "237",
+          "297",
+          "247",
+          "230"
+        ],
+        "correctAnswer": "237"
+      },
+      {
+        "questionType": "numerical-input",
+        "questionText": "ในถังมีปลา 105 ตัว ซื้อมาเพิ่มอีก 22 ตัว ตอนนี้มีปลากี่ตัว?",
+        "correctAnswer": 127
+      },
+      {
+        "questionType": "multiple-choice",
+        "questionText": "มีขนมปังทั้งหมด 345 ชิ้น ขายไปแล้ว 45 ชิ้น เหลือขนมปังกี่ชิ้น?",
+        "options": [
+          "390",
+          "300",
+          "320",
+          "310"
+        ],
+        "correctAnswer": "300"
+      },
+      {
+        "questionType": "numerical-input",
+        "questionText": "ในตู้เย็นมีไข่ไก่ 288 ฟอง แม่ใช้ทำขนมไป 18 ฟอง เหลือไข่กี่ฟอง?",
+        "correctAnswer": 270
+      },
+      {
+        "questionType": "multiple-choice",
+        "questionText": "มีกล้วย 178 ลูก พ่อซื้อมาเพิ่มอีก 20 ลูก รวมมีกล้วยกี่ลูก?",
+        "options": [
+          "198",
+          "158",
+          "190",
+          "200"
+        ],
+        "correctAnswer": "198"
+      },
+      {
+        "questionType": "numerical-input",
+        "questionText": "บนโต๊ะมีแก้ว 310 ใบ เก็บไปแล้ว 10 ใบ เหลือแก้วกี่ใบ?",
+        "correctAnswer": 300
+      },
+      {
+        "questionType": "multiple-choice",
+        "questionText": "สมุดเล่มหนึ่งมี 124 หน้า ถ้าเขียนไปแล้ว 24 หน้า เหลือหน้าที่ยังไม่ได้เขียนกี่หน้า?",
+        "options": [
+          "100",
+          "148",
+          "110",
+          "120"
+        ],
+        "correctAnswer": "100"
+      },
+      {
+        "questionType": "numerical-input",
+        "questionText": "ครูมีปากกา 208 ด้าม นักเรียนนำมาคืนอีก 50 ด้าม รวมครูมีปากกากี่ด้าม?",
+        "correctAnswer": 258
+      },
+      {
+        "questionType": "multiple-choice",
+        "questionText": "ในกล่องมีลูกแก้ว 455 ลูก ถ้าหยิบออกมา 55 ลูก จะเหลือลูกแก้วกี่ลูก?",
+        "options": [
+          "400",
+          "410",
+          "500",
+          "390"
+        ],
+        "correctAnswer": "400"
+      },
+      {
+        "questionType": "numerical-input",
+        "questionText": "มีนักเรียนหญิง 190 คน นักเรียนชาย 30 คน รวมมีนักเรียนทั้งหมดกี่คน?",
+        "correctAnswer": 220
+      },
+      {
+        "questionType": "multiple-choice",
+        "questionText": "พ่อค้ามีมะม่วง 370 ผล ขายไปแล้ว 20 ผล เหลือมะม่วงกี่ผล?",
+        "options": [
+          "350",
+          "390",
+          "360",
+          "400"
+        ],
+        "correctAnswer": "350"
+      },
+      {
+        "questionType": "numerical-input",
+        "questionText": "ในฟาร์มมีเป็ด 245 ตัว มีไก่ 32 ตัว รวมมีสัตว์ปีกกี่ตัว?",
+        "correctAnswer": 277
+      },
+      {
+        "questionType": "multiple-choice",
+        "questionText": "จอยมีเงิน 560 บาท ใช้ซื้อของไป 60 บาท จอยเหลือเงินกี่บาท?",
+        "options": [
+          "500",
+          "620",
+          "510",
+          "490"
+        ],
+        "correctAnswer": "500"
+      },
+      {
+        "questionType": "numerical-input",
+        "questionText": "มีรถไฟ 108 ขบวน มีรถบัส 11 ขบวน รวมมียานพาหนะทั้งหมดกี่ขบวน?",
+        "correctAnswer": 119
+      }
+    ]
+  }

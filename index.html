@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LookPeach Learning</title>
+  <link rel="icon" type="image/png" href="images/icon-web.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { DEFAULT: '#ff8fb3', 700: '#ff6f9f' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="w-full bg-cover bg-center h-48 md:h-64 relative overflow-hidden">
+    <img src="images/header.png" alt="Family Learning App Header" class="absolute inset-0 w-full h-full object-cover">
+    
+    <div class="relative z-10 flex items-center justify-center h-full">
+    </div>
+  </header>
+  <main class="max-w-6xl mx-auto p-4">
+    <section id="subjectTopicTableSection" class="mb-8">
+      <div class="flex flex-wrap gap-2 mb-4">
+        <input id="searchInput" type="text" placeholder="Search subject or topic..." class="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/40 w-64" />
+        <select id="subjectFilter" class="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/40">
+          <option value="">All Subjects</option>
+        </select>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm border rounded-xl bg-white dark:bg-slate-900" id="subjectTopicTable">
+          <thead><tr class="bg-primary/10"><th class="px-2 py-1">Subject</th><th class="px-2 py-1">Topic</th><th class="px-2 py-1">Action</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="space-y-4">
+      <div id="topicContainer" class="rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900 p-4 shadow hidden"></div>
+      <div id="emptyState" class="rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900 p-10 text-center shadow">
+        <div class="text-2xl mb-2">✨</div>
+        <div class="text-slate-600 dark:text-slate-300">Search and select a topic to begin.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // --- Dynamic subject/topic loading from manifest ---
+    let subjects = [];
+    let subjectToTopics = {};
+
+    async function loadManifest() {
+      const res = await fetch('data/subjects/manifest.json');
+      if (!res.ok) {
+        alert('Failed to load subject manifest.');
+        return;
+      }
+      subjectToTopics = await res.json();
+      subjects = Object.keys(subjectToTopics);
+      renderSubjectTopicTable();
+    }
+
+    const els = {
+      topicContainer: document.getElementById("topicContainer"),
+      emptyState: document.getElementById("emptyState")
+    };
+
+    const storageKeys = {
+      progress: (subject, topicFile) => `progress:${subject}:${topicFile}`,
+      lastSelection: "lastSelection"
+    };
+
+    function saveLocal(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+    function loadLocal(key, fallback = null) {
+      try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+    }
+
+    function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    function renderTopics(subject) {
+      const topics = subjectToTopics[subject] || [];
+      els.topicsList.innerHTML = topics.map(t => `
+        <li>
+          <button data-file="${t.file}"
+            class="w-full text-left rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900 px-3 py-2 font-semibold text-slate-900 dark:text-slate-100 shadow hover:border-primary focus:outline-none">
+            ${t.title}
+          </button>
+        </li>`).join("");
+      els.topicsList.querySelectorAll("button[data-file]").forEach(btn => {
+        btn.addEventListener("click", () => confirmTopic(subject, btn.dataset.file, btn));
+      });
+    }
+
+    function confirmTopic(subject, topicFile, buttonEl) {
+      // Show confirmation dialog before starting
+      const topic = (subjectToTopics[subject] || []).find(t => t.file === topicFile);
+      if (!topic) return;
+      if (!confirm(`Start topic: ${topic.title}? Questions will be shown in random order.`)) return;
+      selectTopic(subject, topicFile, buttonEl, true);
+    }
+
+    // Remove sidebar highlight logic from selectTopic
+    async function selectTopic(subject, topicFile, buttonEl, randomizeQuestions = false) {
+      // No sidebar highlight needed
+      saveLocal(storageKeys.lastSelection, { subject, topicFile });
+      await loadAndRenderTopic(subject, topicFile, randomizeQuestions);
+    }
+
+    async function loadAndRenderTopic(subject, topicFile, randomizeQuestions = false) {
+      const url = `data/subjects/${subject}/${topicFile}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        showError(`Failed to load topic: ${url}`);
+        return;
+      }
+      const topic = await res.json();
+      renderTopic(topic, subject, topicFile, randomizeQuestions);
+    }
+
+    function showError(message) {
+      els.topicContainer.classList.remove("hidden");
+      els.emptyState.classList.add("hidden");
+      els.topicContainer.innerHTML = `<div role="alert" class="text-rose-600">${message}</div>`;
+    }
+
+    function getProgress(subject, topicFile, totalQuestions) {
+      const key = storageKeys.progress(subject, topicFile);
+      const data = loadLocal(key, { answers: {}, score: 0, completed: false, total: totalQuestions });
+      if (typeof data.total !== "number") data.total = totalQuestions;
+      return data;
+    }
+
+    function setProgress(subject, topicFile, progress) {
+      const key = storageKeys.progress(subject, topicFile);
+      saveLocal(key, progress);
+      // No UI update needed
+    }
+
+    function renderTopic(topic, subject, topicFile, randomizeQuestions = false) {
+      els.topicContainer.classList.remove("hidden");
+      els.emptyState.classList.add("hidden");
+
+      // Shuffle questions if needed
+      let questions = topic.questions.slice();
+      if (randomizeQuestions) {
+        questions = shuffleArray(questions);
+      }
+
+      const progress = getProgress(subject, topicFile, questions.length);
+
+      // State for quiz flow
+      let current = 0;
+      let score = 0;
+      let userAnswers = [];
+
+      function renderQuestion() {
+        if (current >= questions.length) {
+          renderSummary();
+          return;
+        }
+        const q = questions[current];
+        els.topicContainer.innerHTML = `
+          <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">${escapeHtml(topic.topicTitle)}</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400">Subject: ${capitalize(subject)} • File: ${topicFile}</p>
+          <article class="my-4 prose prose-slate dark:prose-invert">${markdownToHtml(escapeHtml(topic.learningContent))}</article>
+          <div class="rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900 p-4 shadow mb-4 relative">
+            <div class="font-bold mb-2">Question ${current + 1} of ${questions.length}</div>
+            ${questionHtml(q, 0, { answers: {} })}
+            <div id="feedback" class="mt-2 text-sm font-semibold"></div>
+            <div id="blocker" class="hidden absolute inset-0 bg-white/80 dark:bg-black/60 flex items-center justify-center z-10"><span class="text-lg font-bold text-primary">Checking...</span></div>
+          </div>
+        `;
+        attachSingleQuestionHandler(q, subject, topicFile, progress, (correct, userAnswer) => {
+          userAnswers.push({ userAnswer, correct, question: q });
+          if (correct) score++;
+          // Block UI after answer
+          document.getElementById('blocker').classList.remove('hidden');
+          setTimeout(() => {
+            current++;
+            renderQuestion();
+          }, 900);
+        });
+      }
+
+      function renderSummary() {
+        // Build detail table
+        const details = userAnswers.map((ua, i) => {
+          const isCorrect = ua.correct;
+          let userAns = ua.userAnswer;
+          if (ua.question.questionType === 'multiple-choice') {
+            userAns = `<span class="${isCorrect ? 'text-emerald-600' : 'text-rose-600'}">${escapeHtml(userAns)}</span>`;
+          } else {
+            userAns = `<span class="${isCorrect ? 'text-emerald-600' : 'text-rose-600'}">${userAns}</span>`;
+          }
+          return `<tr class="${isCorrect ? 'bg-emerald-50 dark:bg-emerald-900/10' : 'bg-rose-50 dark:bg-rose-900/10'}">
+            <td class="px-2 py-1 text-left">${i + 1}</td>
+            <td class="px-2 py-1 text-left">${escapeHtml(ua.question.questionText)}</td>
+            <td class="px-2 py-1 text-left">${userAns}</td>
+            <td class="px-2 py-1 text-left">${escapeHtml(ua.question.correctAnswer.toString())}</td>
+            <td class="px-2 py-1 text-center">${isCorrect ? '✅' : '❌'}</td>
+          </tr>`;
+        }).join('');
+
+        // Filter controls
+        els.topicContainer.innerHTML = `
+          <div id="score-summary" class="rounded-2xl border-4 border-primary bg-white dark:bg-slate-900 p-4 sm:p-8 shadow-xl max-w-2xl mx-auto relative">
+            <h2 class="text-2xl font-bold text-primary mb-2">Quiz Complete!</h2>
+            <div class="mb-4 text-lg">Score: <span class="font-bold">${score} / ${questions.length}</span></div>
+            <div class="mb-4 flex flex-col sm:flex-row gap-2">
+              <button class="filter-btn rounded-lg px-3 py-1 font-semibold border border-primary text-primary bg-white hover:bg-primary hover:text-white transition" data-filter="all">All</button>
+              <button class="filter-btn rounded-lg px-3 py-1 font-semibold border border-emerald-400 text-emerald-600 bg-white hover:bg-emerald-600 hover:text-white transition" data-filter="correct">Correct</button>
+              <button class="filter-btn rounded-lg px-3 py-1 font-semibold border border-rose-400 text-rose-600 bg-white hover:bg-rose-600 hover:text-white transition" data-filter="incorrect">Incorrect</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm border rounded-xl bg-white dark:bg-slate-900" id="result-table">
+                <thead><tr class="bg-primary/10"><th class="px-2 py-1">#</th><th class="px-2 py-1">Question</th><th class="px-2 py-1">Your Answer</th><th class="px-2 py-1">Correct</th><th class="px-2 py-1">Result</th></tr></thead>
+                <tbody>${details}</tbody>
+              </table>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-6 justify-center">
+              <button id="homeBtn" class="rounded-xl border border-primary bg-white text-primary font-semibold px-3 py-2 hover:bg-primary hover:text-white transition">🏠 Home</button>
+              <button id="shareSummaryBtn" class="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold px-3 py-2 hover:border-primary">Share Summary</button>
+              <button id="saveResultBtn" class="rounded-xl bg-primary hover:bg-primary-700 text-white font-semibold px-3 py-2">Save Result (JSON)</button>
+              <button id="saveJpgBtn" class="rounded-xl bg-primary hover:bg-primary-700 text-white font-semibold px-3 py-2">Save Score as JPG</button>
+            </div>
+          </div>
+        `;
+        // Filter logic
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const filter = btn.dataset.filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('bg-primary','text-white','bg-emerald-600','bg-rose-600'));
+            if (filter === 'all') btn.classList.add('bg-primary','text-white');
+            if (filter === 'correct') btn.classList.add('bg-emerald-600','text-white');
+            if (filter === 'incorrect') btn.classList.add('bg-rose-600','text-white');
+            const rows = document.querySelectorAll('#result-table tbody tr');
+            rows.forEach(row => {
+              if (filter === 'all') row.style.display = '';
+              else if (filter === 'correct') row.style.display = row.classList.contains('bg-emerald-50') || row.classList.contains('dark:bg-emerald-900/10') ? '' : 'none';
+              else if (filter === 'incorrect') row.style.display = row.classList.contains('bg-rose-50') || row.classList.contains('dark:bg-rose-900/10') ? '' : 'none';
+            });
+          });
+        });
+        // Default filter: all
+        document.querySelector('.filter-btn[data-filter="all"]').classList.add('bg-primary','text-white');
+        // Share
+        document.getElementById("shareSummaryBtn").addEventListener("click", () => {
+          const text = `Learning Results\nSubject: ${capitalize(subject)}\nTopic: ${topic.topicTitle}\nScore: ${score}/${questions.length}`;
+          if (navigator.share) {
+            navigator.share({ title: `Results: ${topic.topicTitle}`, text });
+          } else {
+            alert(text);
+          }
+        });
+        // Save JSON
+        document.getElementById("saveResultBtn").addEventListener("click", () => {
+          const summary = { subject, topic: topic.topicTitle, score, total: questions.length, date: new Date().toISOString(), details: userAnswers };
+          const blob = new Blob([JSON.stringify(summary, null, 2)], { type: "application/json" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = `${subject}-${topicFile.replace(/\.json$/,"")}-result.json`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(a.href);
+        });
+        // Save JPG
+        document.getElementById("saveJpgBtn").addEventListener("click", async () => {
+          const node = document.getElementById('score-summary');
+          if (!window.html2canvas) {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+            document.body.appendChild(script);
+            await new Promise(res => { script.onload = res; });
+          }
+          window.html2canvas(node).then(canvas => {
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/jpeg');
+            a.download = `${subject}-${topicFile.replace(/\.json$/,"")}-score.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          });
+        });
+        document.getElementById("homeBtn").addEventListener("click", () => {
+          document.getElementById('subjectTopicTableSection').style.display = '';
+          els.topicContainer.classList.add('hidden');
+          els.emptyState.classList.remove('hidden');
+        });
+      }
+
+      renderQuestion();
+    }
+
+    function attachSingleQuestionHandler(q, subject, topicFile, progress, onAnswered) {
+      if (q.questionType === "multiple-choice") {
+        document.querySelectorAll("button[data-index]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const userAnswer = btn.dataset.value;
+            const correct = userAnswer === q.correctAnswer;
+            document.getElementById("feedback").textContent = correct ? "✅ Correct!" : "❌ Incorrect!";
+            document.getElementById("feedback").className = correct ? "mt-2 text-sm font-semibold text-emerald-600" : "mt-2 text-sm font-semibold text-rose-600";
+            setTimeout(() => onAnswered(correct, userAnswer), 500);
+          });
+        });
+      }
+      if (q.questionType === "numerical-input") {
+        const submitBtn = document.querySelector(".submit-num");
+        submitBtn.addEventListener("click", () => {
+          const input = document.querySelector(".num-input");
+          const userAnswer = Number(input.value);
+          if (Number.isNaN(userAnswer)) return;
+          const correct = Number(userAnswer) === Number(q.correctAnswer);
+          document.getElementById("feedback").textContent = correct ? "✅ Correct!" : "❌ Incorrect!";
+          document.getElementById("feedback").className = correct ? "mt-2 text-sm font-semibold text-emerald-600" : "mt-2 text-sm font-semibold text-rose-600";
+          setTimeout(() => onAnswered(correct, userAnswer), 500);
+        });
+      }
+    }
+
+    function questionHtml(q, index, progress) {
+      const answered = progress.answers[index];
+      if (q.questionType === "multiple-choice") {
+        const optionsHtml = q.options.map(opt => {
+          const selected = answered && answered.userAnswer === opt;
+          const base = "px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold shadow hover:border-primary";
+          const sel = selected ? " bg-emerald-50 border-emerald-400 dark:bg-emerald-900/20" : "";
+          return `<button class="${base}${sel}" data-index="${index}" data-value="${escapeAttr(opt)}">${escapeHtml(opt)}</button>`;
+        }).join("");
+        return `
+          <div><span class="font-bold">Q${index + 1}.</span> ${escapeHtml(q.questionText)}</div>
+          <div class="flex flex-wrap gap-2 mt-2">${optionsHtml}</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">Multiple choice</div>
+        `;
+      }
+      if (q.questionType === "numerical-input") {
+        const value = answered ? answered.userAnswer : "";
+        return `
+          <div><span class="font-bold">Q${index + 1}.</span> ${escapeHtml(q.questionText)}</div>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <input type="number" step="any" inputmode="decimal" class="num-input w-40 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/40" data-index="${index}" value="${escapeAttr(value)}" placeholder="Enter number" />
+            <button class="submit-num px-3 py-2 rounded-lg bg-primary hover:bg-primary-700 text-white font-semibold" data-index="${index}">Submit</button>
+          </div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">Numerical input</div>
+        `;
+      }
+      return `<div>Unsupported question type.</div>`;
+    }
+
+    function attachQuestionHandlers(container, q, index, subject, topicFile, progress) {
+      if (q.questionType === "multiple-choice") {
+        container.querySelectorAll("button[data-index]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const userAnswer = btn.dataset.value;
+            const correct = userAnswer === q.correctAnswer;
+            progress.answers[index] = { userAnswer, correct };
+            progress.score = computeScore(progress);
+            setProgress(subject, topicFile, progress);
+            container.querySelectorAll("button[data-index]").forEach(b => b.classList.remove("bg-emerald-50","border-emerald-400","dark:bg-emerald-900/20"));
+            btn.classList.add("bg-emerald-50","border-emerald-400","dark:bg-emerald-900/20");
+          });
+        });
+      }
+      if (q.questionType === "numerical-input") {
+        const submitBtn = container.querySelector(".submit-num");
+        submitBtn.addEventListener("click", () => {
+          const input = container.querySelector(".num-input");
+          const userAnswer = Number(input.value);
+          if (Number.isNaN(userAnswer)) return;
+          const correct = Number(userAnswer) === Number(q.correctAnswer);
+          progress.answers[index] = { userAnswer, correct };
+          progress.score = computeScore(progress);
+          setProgress(subject, topicFile, progress);
+        });
+      }
+    }
+
+    function computeScore(progress) {
+      const answered = Object.values(progress.answers);
+      if (answered.length === 0) return 0;
+      const correctCount = answered.filter(a => a.correct).length;
+      return `${correctCount}/${progress.total}`;
+    }
+
+    function saveResults(subject, topicFile) {
+      const progress = loadLocal(storageKeys.progress(subject, topicFile));
+      const blob = new Blob([JSON.stringify(progress, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${subject}-${topicFile.replace(/\.json$/,"")}-results.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+    }
+
+    async function shareResults(subject, topicFile, topicTitle) {
+      const progress = loadLocal(storageKeys.progress(subject, topicFile));
+      const text = `Learning Results\nSubject: ${capitalize(subject)}\nTopic: ${topicTitle}\nScore: ${progress?.score ?? "0/0"}`;
+      if (navigator.share) {
+        try { await navigator.share({ title: `Results: ${topicTitle}`, text }); } catch(e) {}
+      } else {
+        alert(text);
+      }
+    }
+
+    function resetProgress(subject, topicFile, topic) {
+      const cleared = { answers: {}, score: 0, completed: false, total: topic.questions.length };
+      setProgress(subject, topicFile, cleared);
+      loadAndRenderTopic(subject, topicFile);
+    }
+
+    function markdownToHtml(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1<\/strong>')
+        .replace(/\n/g, '<br>');
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+    function escapeAttr(str) { return escapeHtml(str); }
+
+    function shuffleArray(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    // --- Subject/Topic Table Page ---
+    function renderSubjectTopicTable() {
+      // Populate subject filter
+      const subjectFilter = document.getElementById('subjectFilter');
+      subjectFilter.innerHTML = '<option value="">All Subjects</option>' + subjects.map(s => `<option value="${capitalize(s)}">${capitalize(s)}</option>`).join('');
+      // Render table
+      updateSubjectTopicTable();
+      // Search/filter events
+      document.getElementById('searchInput').addEventListener('input', updateSubjectTopicTable);
+      subjectFilter.addEventListener('change', updateSubjectTopicTable);
+    }
+    function updateSubjectTopicTable() {
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      const filter = document.getElementById('subjectFilter').value;
+      const tbody = document.querySelector('#subjectTopicTable tbody');
+      tbody.innerHTML = '';
+      for (const subject of subjects) {
+        if (filter && subject !== filter) continue;
+        for (const t of subjectToTopics[subject]) {
+          if (
+            (search && !subject.toLowerCase().includes(search) && !t.title.toLowerCase().includes(search))
+          ) continue;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="px-2 py-1">${capitalize(subject)}</td><td class="px-2 py-1">${t.title}</td><td class="px-2 py-1"><button class="start-btn rounded-lg bg-primary hover:bg-primary-700 text-white font-semibold px-3 py-1" data-subject="${subject}" data-file="${t.file}">Start</button></td>`;
+          tbody.appendChild(tr);
+        }
+      }
+      // Attach start handlers
+      document.querySelectorAll('.start-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.preventDefault();
+          const subject = btn.dataset.subject;
+          const topicFile = btn.dataset.file;
+          // Hide table, show quiz page
+          document.getElementById('subjectTopicTableSection').style.display = 'none';
+          document.getElementById('emptyState').classList.add('hidden');
+          selectTopic(subject, topicFile, btn, true);
+        });
+      });
+    }
+    // On load, show table and hide quiz
+    document.getElementById('subjectTopicTableSection').style.display = '';
+    els.topicContainer.classList.add('hidden');
+    els.emptyState.classList.remove('hidden');
+    loadManifest();
+  </script>
+  
+</body>
+</html>
+

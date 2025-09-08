@@ -1,0 +1,23 @@
+# Task Log
+
+- [x] Scaffold project structure and directories
+  - Created `index.html`
+  - Added `data/subjects/...` with sample topics
+  - Added `scripts/generate_topic.js`
+- [x] Implement SPA in `index.html` (subjects, topics, questions)
+- [x] Add sample JSON topics for history and science
+- [x] Implement localStorage-based progress tracking
+- [x] Add Save (download) and Share (Web Share API) results
+- [x] Create Gemini content generation CLI skeleton
+- [x] Add minimal deploy instructions for Netlify
+- [x] Polish UI with modern, beautiful CSS in `index.html`
+- [x] Switch theme to pastel pink primary
+- [x] Replace custom CSS with Tailwind CDN and utilities
+- [x] List all subjects and topics, confirm before starting a topic
+- [x] Render questions one at a time in random order for each topic
+- [x] Show summary score after finishing all questions, with share/save options
+- [x] Block UI after answer is chosen until next question
+- [x] Render a beautiful score summary with a detailed table of all questions, answers, and results
+- [x] Add filter buttons to show all/correct/incorrect answers
+- [x] Change 'Save Summary (JSON)' to 'Save Result (JSON)'
+- [x] Add 'Save Score as JPG' using html2canvas CDN
